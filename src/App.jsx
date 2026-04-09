@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
 const TAG_COLORS = [
-  "#6a8fff", "#f76f8e", "#f7a74a", "#4ecb71",
-  "#c97ef7", "#4ec9c9", "#f7e24a", "#f7674a"
+  "#6a8fff", "#4ecb71", "#c97ef7", "#4ec9c9",
+  "#4eb8f7", "#a8e063", "#7a8fff", "#4eddb0"
 ];
 
 const PRIORITIES = [
@@ -10,6 +10,12 @@ const PRIORITIES = [
   { id: "important",        label: "Important",          color: "#ff9500" },
   { id: "urgent",           label: "Urgent",             color: "#f7e24a" },
   { id: "backburner",       label: "Back Burner",        color: "#888"    },
+];
+
+const DIFFICULTIES = [
+  { id: "easy",   label: "Easy",   color: "#c5f0a4" },
+  { id: "medium", label: "Medium", color: "#a8d94a" },
+  { id: "hard",   label: "Hard",   color: "#4ecb8a" },
 ];
 
 function formatDueDate(dateStr) {
@@ -210,10 +216,14 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
   const [editingText, setEditingText] = useState(false);
   const [editingTag, setEditingTag] = useState(false);
   const [editingPriority, setEditingPriority] = useState(false);
+  const [editingDifficulty, setEditingDifficulty] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [draftText, setDraftText] = useState(todo.text);
 
+  const [editingSubId, setEditingSubId] = useState(null);
+  const [editingSubText, setEditingSubText] = useState("");
   const priority = PRIORITIES.find(p => p.id === todo.priority);
+  const difficulty = DIFFICULTIES.find(d => d.id === todo.difficulty);
   const doneCount = subtasks.filter(s => s.done).length;
 
   function saveText() {
@@ -221,11 +231,11 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
     setEditingText(false);
   }
 
-  function addSubtask() {
+  function addSubtask(keepOpen = false) {
     if (!subInput.trim()) return;
     updateTodo(todo.id, { subtasks: [...subtasks, { id: Date.now(), text: subInput.trim(), done: false }] });
     setSubInput("");
-    setShowSubInput(false);
+    if (!keepOpen) setShowSubInput(false);
   }
 
   function toggleSubtask(subId) {
@@ -294,12 +304,12 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
                 onTap={() => updateTodo(todo.id, { priority: "" })}
                 onHold={() => setEditingPriority(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  background: priority.color + "22", color: priority.color,
-                  border: `1px solid ${priority.color}55`, whiteSpace: "nowrap" }}>{priority.label}</HoldTapSpan>
+                  background: "transparent", color: priority.color,
+                  border: "none", whiteSpace: "nowrap" }}>{priority.label}</HoldTapSpan>
             ) : (
               <span onClick={() => setEditingPriority(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  color: "#888", border: "1px dashed #555", whiteSpace: "nowrap" }}>+ priority</span>
+                  color: "#888", border: "none", whiteSpace: "nowrap" }}>+ priority</span>
             )}
             {editingPriority && (
               <PopupMenu
@@ -317,18 +327,41 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
                 onTap={() => updateTodo(todo.id, { tag: "" })}
                 onHold={() => setEditingTag(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  background: tags[todo.tag] + "22", color: tags[todo.tag],
-                  border: `1px solid ${tags[todo.tag]}55`, whiteSpace: "nowrap" }}>{todo.tag}</HoldTapSpan>
+                  background: "transparent", color: tags[todo.tag],
+                  border: "none", whiteSpace: "nowrap" }}>{todo.tag}</HoldTapSpan>
             ) : (
               <span onClick={() => setEditingTag(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  color: "#888", border: "1px dashed #555", whiteSpace: "nowrap" }}>+ tag</span>
+                  color: "#888", border: "none", whiteSpace: "nowrap" }}>+ tag</span>
             )}
             {editingTag && (
               <PopupMenu
                 options={[{ value: "", label: "No tag", color: "#888" }, ...Object.entries(tags).map(([name, color]) => ({ value: name, label: name, color }))]}
                 onSelect={val => updateTodo(todo.id, { tag: val })}
                 onClose={() => setEditingTag(false)}
+              />
+            )}
+          </span>
+
+          {/* Difficulty */}
+          <span style={{ position: "relative", display: "inline-flex" }}>
+            {difficulty ? (
+              <HoldTapSpan
+                onTap={() => updateTodo(todo.id, { difficulty: "" })}
+                onHold={() => setEditingDifficulty(true)}
+                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
+                  background: "transparent", color: difficulty.color,
+                  border: "none", whiteSpace: "nowrap" }}>{difficulty.label}</HoldTapSpan>
+            ) : (
+              <span onClick={() => setEditingDifficulty(true)}
+                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
+                  color: "#888", border: "none", whiteSpace: "nowrap" }}>+ difficulty</span>
+            )}
+            {editingDifficulty && (
+              <PopupMenu
+                options={[{ value: "", label: "None", color: "#888" }, ...DIFFICULTIES.map(d => ({ value: d.id, label: d.label, color: d.color }))]}
+                onSelect={val => updateTodo(todo.id, { difficulty: val })}
+                onClose={() => setEditingDifficulty(false)}
               />
             )}
           </span>
@@ -353,9 +386,19 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
                     display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {sub.done && <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,6 5,9 10,3"/></svg>}
                 </div>
-                <span style={{ flex: 1, fontSize: 13, color: sub.done ? "#555" : "#c0c0d0", textDecoration: sub.done ? "line-through" : "none" }}>
-                  {sub.text}
-                </span>
+                {editingSubId === sub.id ? (
+                  <input autoFocus value={editingSubText}
+                    onChange={e => setEditingSubText(e.target.value)}
+                    onBlur={() => { if (editingSubText.trim()) updateTodo(todo.id, { subtasks: subtasks.map(s => s.id === sub.id ? { ...s, text: editingSubText.trim() } : s) }); setEditingSubId(null); }}
+                    onKeyDown={e => { if (e.key === "Enter") { if (editingSubText.trim()) updateTodo(todo.id, { subtasks: subtasks.map(s => s.id === sub.id ? { ...s, text: editingSubText.trim() } : s) }); setEditingSubId(null); } if (e.key === "Escape") setEditingSubId(null); }}
+                    style={{ flex: 1, fontSize: 13, background: "#1e1e30", border: "1px solid #6a8fff", borderRadius: 6, color: "#f0f0f0", outline: "none", padding: "2px 6px" }}
+                  />
+                ) : (
+                  <span onClick={() => { setEditingSubId(sub.id); setEditingSubText(sub.text); }}
+                    style={{ flex: 1, fontSize: 13, cursor: "text", color: sub.done ? "#555" : "#c0c0d0", textDecoration: sub.done ? "line-through" : "none" }}>
+                    {sub.text}
+                  </span>
+                )}
                 <button onClick={() => deleteSubtask(sub.id)} style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 14, padding: "0 4px", lineHeight: 1 }}
                   onMouseOver={e => e.target.style.color = "#ff6b6b"} onMouseOut={e => e.target.style.color = "#666"}>×</button>
               </div>
@@ -364,11 +407,10 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
             {showSubInput ? (
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 <input autoFocus value={subInput} onChange={e => setSubInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") addSubtask(); if (e.key === "Escape") setShowSubInput(false); }}
+                  onKeyDown={e => { if (e.key === "Enter") addSubtask(true); if (e.key === "Escape") setShowSubInput(false); }}
+                  onBlur={() => { setShowSubInput(false); setSubInput(""); }}
                   placeholder="Add subtask..."
                   style={{ flex: 1, padding: "5px 9px", fontSize: 13, background: "#1e1e30", border: "1px solid #6a8fff", borderRadius: 6, color: "#f0f0f0", outline: "none" }} />
-                <button className="save-btn" onClick={addSubtask}>Add</button>
-                <button className="icon-btn delete-icon" onClick={() => setShowSubInput(false)}>✕</button>
               </div>
             ) : (
               <button onClick={() => setShowSubInput(true)}
@@ -404,25 +446,27 @@ export default function TodoList() {
   const [input, setInput] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [filterTag, setFilterTag] = useState("All");
   const [newTagName, setNewTagName] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
   const [showDone, setShowDone] = useState(true);
-  const [sortBy, setSortBy] = useState(() => {
-    try { return localStorage.getItem("sortBy") || "none"; } catch { return "none"; }
+  const [sortLevels, setSortLevels] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sortLevels")) || []; } catch { return []; }
   });
 
   useEffect(() => { localStorage.setItem("todos", JSON.stringify(todos)); }, [todos]);
   useEffect(() => { localStorage.setItem("tags", JSON.stringify(tags)); }, [tags]);
-  useEffect(() => { localStorage.setItem("sortBy", sortBy); }, [sortBy]);
+  useEffect(() => { localStorage.setItem("sortLevels", JSON.stringify(sortLevels)); }, [sortLevels]);
 
   function addTodo() {
     if (!input.trim()) return;
-    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false, tag: selectedTag, dueDate, subtasks: [], priority: selectedPriority }]);
+    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false, tag: selectedTag, dueDate, subtasks: [], priority: selectedPriority, difficulty: selectedDifficulty }]);
     setInput("");
     setDueDate("");
     setSelectedPriority("");
+    setSelectedDifficulty("");
   }
 
   function toggleTodo(id) {
@@ -459,23 +503,32 @@ export default function TodoList() {
 
   const PRIORITY_ORDER = ["urgent-important", "important", "urgent", "backburner", ""];
 
+  function compareBy(key, dir, a, b) {
+    let result = 0;
+    if (key === "priority") {
+      const ai = PRIORITY_ORDER.indexOf(a.priority || "");
+      const bi = PRIORITY_ORDER.indexOf(b.priority || "");
+      result = (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    } else if (key === "dueDate") {
+      if (!a.dueDate && !b.dueDate) result = 0;
+      else if (!a.dueDate) result = 1;
+      else if (!b.dueDate) result = -1;
+      else result = a.dueDate.localeCompare(b.dueDate);
+    } else if (key === "newest") {
+      result = b.id - a.id;
+    }
+    return dir === "desc" ? -result : result;
+  }
+
   function sortTasks(tasks) {
-    if (sortBy === "priority") {
-      return [...tasks].sort((a, b) => {
-        const ai = PRIORITY_ORDER.indexOf(a.priority === undefined ? "" : a.priority);
-        const bi = PRIORITY_ORDER.indexOf(b.priority === undefined ? "" : b.priority);
-        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      });
-    }
-    if (sortBy === "dueDate") {
-      return [...tasks].sort((a, b) => {
-        if (!a.dueDate && !b.dueDate) return 0;
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return a.dueDate.localeCompare(b.dueDate);
-      });
-    }
-    return tasks;
+    if (!sortLevels.length) return [...tasks].sort((a, b) => b.id - a.id);
+    return [...tasks].sort((a, b) => {
+      for (const level of sortLevels) {
+        const r = compareBy(level.field, level.dir, a, b);
+        if (r !== 0) return r;
+      }
+      return 0;
+    });
   }
 
   const allFiltered = filterTag === "All" ? todos : todos.filter(t => t.tag === filterTag);
@@ -485,17 +538,18 @@ export default function TodoList() {
   const sharedProps = { tags, toggleTodo, deleteTodo, updateTodo };
 
   return (
-    <div style={{ maxWidth: 520, margin: "50px auto", padding: "0 16px", fontFamily: "'Segoe UI', sans-serif", color: "#f0f0f0" }}>
+    <div style={{ maxWidth: "100%", margin: "0", padding: "32px 32px", fontFamily: "'Segoe UI', sans-serif", color: "#f0f0f0" }}>
       <style>{`
         * { box-sizing: border-box; }
         body { background: #1a1a2e; margin: 0; }
         input, button, select { font-family: inherit; }
-        .task-input { flex: 1; padding: 11px 14px; font-size: 15px; background: #2a2a3e; border: 1px solid #444; border-radius: 8px; color: #f0f0f0; outline: none; }
+        .task-input { flex: 1; padding: 8px 2px; font-size: 15px; background: transparent; border: none; border-bottom: 1px solid #444; border-radius: 0; color: #f0f0f0; outline: none; }
         .task-input::placeholder { color: #888; }
-        .task-input:focus { border-color: #6a8fff; }
-        .tag-select { padding: 11px 10px; font-size: 13px; background: #2a2a3e; border: 1px solid #444; border-radius: 8px; color: #f0f0f0; outline: none; cursor: pointer; }
-        .date-input { padding: 11px 10px; font-size: 13px; background: #2a2a3e; border: 1px solid #444; border-radius: 8px; color: #f0f0f0; outline: none; cursor: pointer; color-scheme: dark; }
-        .date-input:focus { border-color: #6a8fff; }
+        .task-input:focus { border-bottom-color: #6a8fff; }
+        .tag-select { padding: 8px 2px; font-size: 13px; background: transparent; border: none; border-bottom: 1px solid #444; border-radius: 0; color: #f0f0f0; outline: none; cursor: pointer; }
+        .tag-select:focus { border-bottom-color: #6a8fff; }
+        .date-input { padding: 8px 2px; font-size: 13px; background: transparent; border: none; border-bottom: 1px solid #444; border-radius: 0; color: #f0f0f0; outline: none; cursor: pointer; color-scheme: dark; }
+        .date-input:focus { border-bottom-color: #6a8fff; }
         .add-btn { padding: 11px 20px; background: #6a8fff; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
         .add-btn:hover { background: #5577ee; }
         .edit-input { flex: 1; padding: 6px 10px; font-size: 15px; background: #2a2a3e; border: 1px solid #6a8fff; border-radius: 6px; color: #f0f0f0; outline: none; }
@@ -506,11 +560,11 @@ export default function TodoList() {
         .edit-icon:hover { color: #6a8fff; background: #2a2a3e; }
         .delete-icon { color: #aaa; }
         .delete-icon:hover { color: #ff6b6b; background: #2a2a3e; }
-        .filter-btn { padding: 5px 12px; border-radius: 20px; border: 1px solid #444; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+        .filter-btn { padding: 5px 12px; border-radius: 20px; border: none; font-size: 12px; cursor: pointer; transition: all 0.15s; }
         .new-tag-input { padding: 6px 10px; font-size: 13px; background: #2a2a3e; border: 1px solid #6a8fff; border-radius: 6px; color: #f0f0f0; outline: none; width: 130px; }
         .done-toggle { background: none; border: none; cursor: pointer; color: #555; font-size: 12px; display: flex; align-items: center; gap: 6px; padding: 0; }
         .done-toggle:hover { color: #888; }
-        .priority-btn { padding: 6px 11px; border-radius: 20px; border: 1px solid #444; font-size: 12px; cursor: pointer; transition: all 0.15s; background: transparent; color: #888; }
+        .priority-btn { padding: 6px 11px; border-radius: 20px; border: none; font-size: 12px; cursor: pointer; transition: all 0.15s; background: transparent; color: #888; }
       `}</style>
 
       <h1 style={{ fontSize: 26, marginBottom: 20, color: "#f0f0f0" }}>My To-Do List</h1>
@@ -520,11 +574,11 @@ export default function TodoList() {
         <div style={{ fontSize: 11, color: "#888", marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" }}>Projects</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           <button className="filter-btn" onClick={() => setFilterTag("All")}
-            style={{ background: filterTag === "All" ? "#2a2a3e" : "transparent", color: filterTag === "All" ? "#f0f0f0" : "#888" }}>All</button>
+            style={{ background: "transparent", color: filterTag === "All" ? "#f0f0f0" : "#888" }}>All</button>
           {Object.entries(tags).map(([name, color]) => (
             <div key={name} style={{ display: "flex", alignItems: "center", gap: 3 }}>
               <button className="filter-btn" onClick={() => setFilterTag(filterTag === name ? "All" : name)}
-                style={{ background: filterTag === name ? color + "33" : "transparent", color: filterTag === name ? color : "#aaa", borderColor: filterTag === name ? color : "#444" }}>
+                style={{ background: "transparent", color: filterTag === name ? color : "#aaa" }}>
                 <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: 5 }} />
                 {name}
               </button>
@@ -540,7 +594,7 @@ export default function TodoList() {
               <button className="icon-btn delete-icon" onClick={() => setShowTagInput(false)}>✕</button>
             </>
           ) : (
-            <button onClick={() => setShowTagInput(true)} style={{ background: "none", border: "1px dashed #444", color: "#666", borderRadius: 20, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>+ New tag</button>
+            <button onClick={() => setShowTagInput(true)} style={{ background: "none", border: "none", color: "#666", fontSize: 12, cursor: "pointer" }}>+ New tag</button>
           )}
         </div>
       </div>
@@ -549,7 +603,6 @@ export default function TodoList() {
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input className="task-input" value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && addTodo()} placeholder="Add a new task..." />
-        <button className="add-btn" onClick={addTodo}>Add</button>
       </div>
 
       {/* Date + tag row */}
@@ -562,16 +615,16 @@ export default function TodoList() {
       </div>
 
       {/* Priority buttons */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
         {PRIORITIES.map(p => {
           const active = selectedPriority === p.id;
           return (
             <button key={p.id} className="priority-btn"
               onClick={() => setSelectedPriority(active ? "" : p.id)}
               style={{
-                background: active ? p.color + "22" : "transparent",
+                background: "transparent",
                 color: active ? p.color : "#666",
-                borderColor: active ? p.color : "#333",
+                border: "none",
               }}>
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: active ? p.color : "#555", marginRight: 6 }} />
               {p.label}
@@ -580,23 +633,61 @@ export default function TodoList() {
         })}
       </div>
 
+      {/* Difficulty buttons */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
+        {DIFFICULTIES.map(d => {
+          const active = selectedDifficulty === d.id;
+          return (
+            <button key={d.id} className="priority-btn"
+              onClick={() => setSelectedDifficulty(active ? "" : d.id)}
+              style={{
+                background: "transparent",
+                color: active ? d.color : "#666",
+                border: "none",
+              }}>
+              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: active ? d.color : "#555", marginRight: 6 }} />
+              {d.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Sort controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 11, color: "#555", letterSpacing: 1, textTransform: "uppercase" }}>Sort:</span>
-        {[
-          { id: "none", label: "Manual" },
-          { id: "priority", label: "Priority" },
-          { id: "dueDate", label: "Due Date" },
-        ].map(opt => (
-          <button key={opt.id} onClick={() => setSortBy(opt.id)}
-            style={{
-              padding: "4px 12px", borderRadius: 20, border: "1px solid",
-              fontSize: 12, cursor: "pointer", transition: "all 0.15s",
-              borderColor: sortBy === opt.id ? "#6a8fff" : "#333",
-              background: sortBy === opt.id ? "#6a8fff22" : "transparent",
-              color: sortBy === opt.id ? "#6a8fff" : "#666",
-            }}>{opt.label}</button>
-        ))}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Sort</div>
+        {sortLevels.map((level, i) => {
+          const usedFields = sortLevels.map(l => l.field).filter((_, j) => j !== i);
+          return (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+              <select value={level.field}
+                onChange={e => setSortLevels(sortLevels.map((l, j) => j === i ? { ...l, field: e.target.value } : l))}
+                style={{ flex: 1, fontSize: 13, padding: "6px 8px", background: "#2a2a3e", border: "1px solid #444", borderRadius: 8, color: "#f0f0f0", outline: "none", cursor: "pointer" }}>
+                {!usedFields.includes("newest") && <option value="newest">Newest</option>}
+                {!usedFields.includes("priority") && <option value="priority">Priority</option>}
+                {!usedFields.includes("dueDate") && <option value="dueDate">Due Date</option>}
+              </select>
+              <select value={level.dir}
+                onChange={e => setSortLevels(sortLevels.map((l, j) => j === i ? { ...l, dir: e.target.value } : l))}
+                style={{ fontSize: 13, padding: "6px 8px", background: "#2a2a3e", border: "1px solid #444", borderRadius: 8, color: "#f0f0f0", outline: "none", cursor: "pointer" }}>
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+              <button onClick={() => setSortLevels(sortLevels.filter((_, j) => j !== i))}
+                style={{ background: "none", border: "none", color: "#666", cursor: "pointer", fontSize: 16, padding: "0 4px", lineHeight: 1 }}
+                onMouseOver={e => e.target.style.color = "#ff6b6b"} onMouseOut={e => e.target.style.color = "#666"}>×</button>
+            </div>
+          );
+        })}
+        {sortLevels.length < 3 && (
+          <button onClick={() => {
+            const usedFields = sortLevels.map(l => l.field);
+            const available = ["newest", "priority", "dueDate"].find(f => !usedFields.includes(f));
+            if (available) setSortLevels([...sortLevels, { field: available, dir: "asc" }]);
+          }}
+            style={{ fontSize: 12, color: "#888", background: "none", border: "1px dashed #444", borderRadius: 8, padding: "5px 12px", cursor: "pointer", marginTop: 2 }}>
+            + Add sort
+          </button>
+        )}
       </div>
 
       {/* Active tasks */}
