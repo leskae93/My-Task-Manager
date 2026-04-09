@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
 const TAG_COLORS = [
-  "#6a8fff", "#4ecb71", "#c97ef7", "#4ec9c9",
-  "#4eb8f7", "#a8e063", "#7a8fff", "#4eddb0"
+  "#6a8fff", "#4ec9e8", "#3a7bd5", "#7ab8f5",
+  "#2196c4", "#89c4ff", "#1a5fa8", "#5bc8d4"
 ];
 
 const PRIORITIES = [
@@ -336,7 +336,7 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
             )}
             {editingTag && (
               <PopupMenu
-                options={[{ value: "", label: "No tag", color: "#888" }, ...Object.entries(tags).map(([name, color]) => ({ value: name, label: name, color }))]}
+                options={[{ value: "", label: "No tag", color: "#888" }, ...Object.entries(tags).sort(([a],[b]) => a.localeCompare(b)).map(([name, color]) => ({ value: name, label: name, color }))]}
                 onSelect={val => updateTodo(todo.id, { tag: val })}
                 onClose={() => setEditingTag(false)}
               />
@@ -448,9 +448,11 @@ export default function TodoList() {
   const [selectedPriority, setSelectedPriority] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [showNewTaskDatePicker, setShowNewTaskDatePicker] = useState(false);
   const [filterTag, setFilterTag] = useState("All");
   const [newTagName, setNewTagName] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
+  const [confirmDeleteTag, setConfirmDeleteTag] = useState(null);
   const [showDone, setShowDone] = useState(true);
   const [sortLevels, setSortLevels] = useState(() => {
     try { return JSON.parse(localStorage.getItem("sortLevels")) || []; } catch { return []; }
@@ -467,6 +469,7 @@ export default function TodoList() {
     setDueDate("");
     setSelectedPriority("");
     setSelectedDifficulty("");
+    setSelectedTag("");
   }
 
   function toggleTodo(id) {
@@ -489,7 +492,6 @@ export default function TodoList() {
     setTags({ ...tags, [name]: color });
     setNewTagName("");
     setShowTagInput(false);
-    setSelectedTag(name);
   }
 
   function deleteTag(name) {
@@ -575,14 +577,14 @@ export default function TodoList() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           <button className="filter-btn" onClick={() => setFilterTag("All")}
             style={{ background: "transparent", color: filterTag === "All" ? "#f0f0f0" : "#888" }}>All</button>
-          {Object.entries(tags).map(([name, color]) => (
+          {Object.entries(tags).sort(([a],[b]) => a.localeCompare(b)).map(([name, color]) => (
             <div key={name} style={{ display: "flex", alignItems: "center", gap: 3 }}>
               <button className="filter-btn" onClick={() => setFilterTag(filterTag === name ? "All" : name)}
                 style={{ background: "transparent", color: filterTag === name ? color : "#aaa" }}>
                 <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, marginRight: 5 }} />
                 {name}
               </button>
-              <button onClick={() => deleteTag(name)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 13, padding: "0 2px", lineHeight: 1 }}>×</button>
+              <button onClick={() => setConfirmDeleteTag(name)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 13, padding: "0", marginLeft: -8, lineHeight: 1 }}>×</button>
             </div>
           ))}
           {showTagInput ? (
@@ -605,56 +607,9 @@ export default function TodoList() {
           onKeyDown={e => e.key === "Enter" && addTodo()} placeholder="Add a new task..." />
       </div>
 
-      {/* Date + tag row */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <input type="date" className="date-input" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{ flex: 1 }} />
-        <select className="tag-select" value={selectedTag} onChange={e => setSelectedTag(e.target.value)} style={{ flex: 1 }}>
-          <option value="">No tag</option>
-          {Object.keys(tags).map(name => <option key={name} value={name}>{name}</option>)}
-        </select>
-      </div>
-
-      {/* Priority buttons */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-        {PRIORITIES.map(p => {
-          const active = selectedPriority === p.id;
-          return (
-            <button key={p.id} className="priority-btn"
-              onClick={() => setSelectedPriority(active ? "" : p.id)}
-              style={{
-                background: "transparent",
-                color: active ? p.color : "#666",
-                border: "none",
-              }}>
-              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: active ? p.color : "#555", marginRight: 6 }} />
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Difficulty buttons */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
-        {DIFFICULTIES.map(d => {
-          const active = selectedDifficulty === d.id;
-          return (
-            <button key={d.id} className="priority-btn"
-              onClick={() => setSelectedDifficulty(active ? "" : d.id)}
-              style={{
-                background: "transparent",
-                color: active ? d.color : "#666",
-                border: "none",
-              }}>
-              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: active ? d.color : "#555", marginRight: 6 }} />
-              {d.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Sort controls */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: "#555", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Sort</div>
+        <div style={{ fontSize: 11, color: "#888", marginBottom: 8, letterSpacing: 1, textTransform: "uppercase" }}>Sort</div>
         {sortLevels.map((level, i) => {
           const usedFields = sortLevels.map(l => l.field).filter((_, j) => j !== i);
           return (
@@ -701,6 +656,35 @@ export default function TodoList() {
       <p style={{ marginTop: 12, marginBottom: 32, color: "#888", fontSize: 13 }}>
         {activeTasks.length} task(s) remaining
       </p>
+
+      {/* Delete tag confirmation popup */}
+      {confirmDeleteTag && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.6)", zIndex: 200,
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }} onClick={() => setConfirmDeleteTag(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#1e1e30", border: "1px solid #3a3a55", borderRadius: 12,
+            padding: "24px 28px", minWidth: 260, textAlign: "center"
+          }}>
+            <p style={{ fontSize: 15, color: "#f0f0f0", marginBottom: 6 }}>Delete tag?</p>
+            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
+              "{confirmDeleteTag}" will be removed from all tasks.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => setConfirmDeleteTag(null)}
+                style={{ padding: "7px 20px", borderRadius: 8, border: "1px solid #444", background: "transparent", color: "#aaa", fontSize: 13, cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button onClick={() => { deleteTag(confirmDeleteTag); setConfirmDeleteTag(null); }}
+                style={{ padding: "7px 20px", borderRadius: 8, border: "none", background: "#ff6b6b", color: "#fff", fontSize: 13, cursor: "pointer" }}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Done section */}
       {doneTasks.length > 0 && (
