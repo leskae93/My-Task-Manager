@@ -365,6 +365,13 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
               />
             )}
           </span>
+
+          {/* Focus */}
+          <span onClick={() => updateTodo(todo.id, { focus: !todo.focus })}
+            style={{ fontSize: 11, padding: "2px 0", cursor: "pointer", whiteSpace: "nowrap",
+              color: todo.focus ? "#c97ef7" : "#888" }}>
+            {todo.focus ? "Deep Focus" : "+ focus"}
+          </span>
         </div>
       )}
 
@@ -431,9 +438,9 @@ export default function TodoList() {
     try {
       const saved = localStorage.getItem("todos");
       return saved ? JSON.parse(saved) : [
-        { id: 1, text: "Buy groceries", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "" },
-        { id: 2, text: "Walk the dog", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "" },
-        { id: 3, text: "Read a book", done: true, tag: "", dueDate: "", subtasks: [], priority: "" },
+        { id: 1, text: "Buy groceries", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "", focus: false },
+        { id: 2, text: "Walk the dog", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "", focus: false },
+        { id: 3, text: "Read a book", done: true, tag: "", dueDate: "", subtasks: [], priority: "", focus: false },
       ];
     } catch { return []; }
   });
@@ -454,6 +461,9 @@ export default function TodoList() {
   const [showTagInput, setShowTagInput] = useState(false);
   const [confirmDeleteTag, setConfirmDeleteTag] = useState(null);
   const [showDone, setShowDone] = useState(true);
+  const [view, setView] = useState(() => {
+    try { return localStorage.getItem("view") || "list"; } catch { return "list"; }
+  });
   const [sortLevels, setSortLevels] = useState(() => {
     try { return JSON.parse(localStorage.getItem("sortLevels")) || []; } catch { return []; }
   });
@@ -461,10 +471,11 @@ export default function TodoList() {
   useEffect(() => { localStorage.setItem("todos", JSON.stringify(todos)); }, [todos]);
   useEffect(() => { localStorage.setItem("tags", JSON.stringify(tags)); }, [tags]);
   useEffect(() => { localStorage.setItem("sortLevels", JSON.stringify(sortLevels)); }, [sortLevels]);
+  useEffect(() => { localStorage.setItem("view", view); }, [view]);
 
   function addTodo() {
     if (!input.trim()) return;
-    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false, tag: selectedTag, dueDate, subtasks: [], priority: selectedPriority, difficulty: selectedDifficulty }]);
+    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false, tag: selectedTag, dueDate, subtasks: [], priority: selectedPriority, difficulty: selectedDifficulty, focus: false }]);
     setInput("");
     setDueDate("");
     setSelectedPriority("");
@@ -537,6 +548,20 @@ export default function TodoList() {
   const activeTasks = sortTasks(allFiltered.filter(t => !t.done));
   const doneTasks = allFiltered.filter(t => t.done);
 
+  const allActiveTasks = sortTasks(todos.filter(t => !t.done));
+  const kanbanColumns = [
+    ...Object.keys(tags).sort((a, b) => a.localeCompare(b)).map(tag => ({
+      name: tag,
+      color: tags[tag],
+      tasks: allActiveTasks.filter(t => t.tag === tag),
+    })),
+    {
+      name: "Untagged",
+      color: "#555",
+      tasks: allActiveTasks.filter(t => !t.tag || !tags[t.tag]),
+    }
+  ];
+
   const sharedProps = { tags, toggleTodo, deleteTodo, updateTodo };
 
   return (
@@ -569,7 +594,19 @@ export default function TodoList() {
         .priority-btn { padding: 6px 11px; border-radius: 20px; border: none; font-size: 12px; cursor: pointer; transition: all 0.15s; background: transparent; color: #888; }
       `}</style>
 
-      <h1 style={{ fontSize: 26, marginBottom: 20, color: "#f0f0f0" }}>My To-Do List</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, color: "#f0f0f0", margin: 0 }}>My To-Do List</h1>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button onClick={() => setView("list")}
+            style={{ background: view === "list" ? "#2a2a3e" : "transparent", border: "none", color: view === "list" ? "#f0f0f0" : "#555", cursor: "pointer", padding: "6px 12px", borderRadius: 8, fontSize: 13 }}>
+            ☰ List
+          </button>
+          <button onClick={() => setView("kanban")}
+            style={{ background: view === "kanban" ? "#2a2a3e" : "transparent", border: "none", color: view === "kanban" ? "#f0f0f0" : "#555", cursor: "pointer", padding: "6px 12px", borderRadius: 8, fontSize: 13 }}>
+            ⊞ Board
+          </button>
+        </div>
+      </div>
 
       {/* Tags row */}
       <div style={{ marginBottom: 20 }}>
@@ -645,17 +682,39 @@ export default function TodoList() {
         )}
       </div>
 
-      {/* Active tasks */}
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {activeTasks.length === 0 && (
-          <li style={{ color: "#888", textAlign: "center", padding: 24 }}>No active tasks!</li>
-        )}
-        {activeTasks.map(todo => <TaskItem key={todo.id} todo={todo} {...sharedProps} />)}
-      </ul>
-
-      <p style={{ marginTop: 12, marginBottom: 32, color: "#888", fontSize: 13 }}>
-        {activeTasks.length} task(s) remaining
-      </p>
+      {view === "list" ? (
+        <>
+          {/* Active tasks */}
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {activeTasks.length === 0 && (
+              <li style={{ color: "#888", textAlign: "center", padding: 24 }}>No active tasks!</li>
+            )}
+            {activeTasks.map(todo => <TaskItem key={todo.id} todo={todo} {...sharedProps} />)}
+          </ul>
+          <p style={{ marginTop: 12, marginBottom: 32, color: "#888", fontSize: 13 }}>
+            {activeTasks.length} task(s) remaining
+          </p>
+        </>
+      ) : (
+        /* Kanban board */
+        <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 24, alignItems: "flex-start" }}>
+          {kanbanColumns.map(col => (
+            <div key={col.name} style={{ minWidth: 280, flex: "0 0 280px", background: "#16162a", borderRadius: 10, padding: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: col.color, display: "inline-block", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: col.color, fontWeight: 500 }}>{col.name}</span>
+                <span style={{ fontSize: 11, color: "#555", marginLeft: "auto" }}>{col.tasks.length}</span>
+              </div>
+              {col.tasks.length === 0 && (
+                <div style={{ fontSize: 12, color: "#444", textAlign: "center", padding: "20px 0" }}>No tasks</div>
+              )}
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {col.tasks.map(todo => <TaskItem key={todo.id} todo={todo} {...sharedProps} />)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Delete tag confirmation popup */}
       {confirmDeleteTag && (
