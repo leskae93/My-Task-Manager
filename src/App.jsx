@@ -18,6 +18,12 @@ const DIFFICULTIES = [
   { id: "hard",   label: "Hard",   color: "#4ecb8a" },
 ];
 
+const FOCUS_LEVELS = [
+  { id: "light",  label: "Light Focus", color: "#d4aaff" },
+  { id: "medium", label: "Medium Focus", color: "#a855f7" },
+  { id: "deep",   label: "Deep Focus",  color: "#6b21a8" },
+];
+
 function formatDueDate(dateStr) {
   if (!dateStr) return null;
   const today = new Date();
@@ -29,7 +35,6 @@ function formatDueDate(dateStr) {
   if (diff === 1) return { label: "Due tomorrow", color: "#f7e24a" };
   return { label: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, color: "#888" };
 }
-
 
 function HoldTapSpan({ onTap, onHold, style, children }) {
   const timer = useRef(null);
@@ -43,9 +48,7 @@ function HoldTapSpan({ onTap, onHold, style, children }) {
     }, 500);
   }
 
-  function cancel() {
-    clearTimeout(timer.current);
-  }
+  function cancel() { clearTimeout(timer.current); }
 
   function end(e) {
     e.preventDefault();
@@ -109,16 +112,10 @@ function DatePicker({ value, onChange, onClose }) {
 
   useEffect(() => {
     let touchMoved = false;
-
     function handleTouchStart() { touchMoved = false; }
     function handleTouchMove() { touchMoved = true; }
-    function handleTouchEnd(e) {
-      if (!touchMoved && ref.current && !ref.current.contains(e.target)) onClose();
-    }
-    function handleMouseDown(e) {
-      if (ref.current && !ref.current.contains(e.target)) onClose();
-    }
-
+    function handleTouchEnd(e) { if (!touchMoved && ref.current && !ref.current.contains(e.target)) onClose(); }
+    function handleMouseDown(e) { if (ref.current && !ref.current.contains(e.target)) onClose(); }
     document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("touchstart", handleTouchStart);
     document.addEventListener("touchmove", handleTouchMove);
@@ -166,17 +163,14 @@ function DatePicker({ value, onChange, onClose }) {
       background: "#1e1e30", border: "1px solid #3a3a55", borderRadius: 10,
       padding: "12px", width: 240, boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
     }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <button onClick={prevMonth} style={{ background: "none", border: "none", color: "#aaa", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>‹</button>
         <span style={{ fontSize: 13, color: "#f0f0f0", fontWeight: 600 }}>{MONTHS[viewMonth]} {viewYear}</span>
         <button onClick={nextMonth} style={{ background: "none", border: "none", color: "#aaa", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>›</button>
       </div>
-      {/* Day headers */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 4 }}>
         {DAYS.map(d => <div key={d} style={{ textAlign: "center", fontSize: 10, color: "#555", padding: "2px 0" }}>{d}</div>)}
       </div>
-      {/* Day cells */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
@@ -194,7 +188,6 @@ function DatePicker({ value, onChange, onClose }) {
           );
         })}
       </div>
-      {/* Footer */}
       <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between" }}>
         <button onClick={() => { onChange(""); onClose(); }}
           style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 12 }}>Clear</button>
@@ -211,19 +204,19 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
   const [expanded, setExpanded] = useState(true);
   const [subInput, setSubInput] = useState("");
   const [showSubInput, setShowSubInput] = useState(false);
-
-  // Per-field edit state
   const [editingText, setEditingText] = useState(false);
   const [editingTag, setEditingTag] = useState(false);
   const [editingPriority, setEditingPriority] = useState(false);
   const [editingDifficulty, setEditingDifficulty] = useState(false);
+  const [editingFocus, setEditingFocus] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [draftText, setDraftText] = useState(todo.text);
-
   const [editingSubId, setEditingSubId] = useState(null);
   const [editingSubText, setEditingSubText] = useState("");
+
   const priority = PRIORITIES.find(p => p.id === todo.priority);
   const difficulty = DIFFICULTIES.find(d => d.id === todo.difficulty);
+  const focusLevel = FOCUS_LEVELS.find(f => f.id === todo.focus);
   const doneCount = subtasks.filter(s => s.done).length;
 
   function saveText() {
@@ -247,12 +240,10 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
   }
 
   const checkboxSize = 18;
-  const indent = checkboxSize + 10; // checkbox + gap
+  const indent = checkboxSize + 10;
 
   return (
     <li style={{ padding: "11px 0", borderBottom: "1px solid #2e2e42" }}>
-
-      {/* Row 1: Checkbox + Text + Delete */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div onClick={() => toggleTodo(todo.id)}
           style={{ width: checkboxSize, height: checkboxSize, borderRadius: 4, border: "1px solid #666",
@@ -278,11 +269,10 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
         <button className="icon-btn delete-icon" onClick={() => deleteTodo(todo.id)} title="Delete">×</button>
       </div>
 
-      {/* Row 2: Due date + Priority + Tag */}
       {!todo.done && (
         <div style={{ marginLeft: indent, marginTop: 6, display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
 
-          {/* Due date first */}
+          {/* Due date */}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, position: "relative" }}>
             <span onClick={() => setShowDatePicker(v => !v)}
               style={{ fontSize: 11, color: due ? due.color : "#888", cursor: "pointer", whiteSpace: "nowrap" }}>
@@ -300,12 +290,9 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
           {/* Priority */}
           <span style={{ position: "relative", display: "inline-flex" }}>
             {priority ? (
-              <HoldTapSpan
-                onTap={() => updateTodo(todo.id, { priority: "" })}
-                onHold={() => setEditingPriority(true)}
+              <HoldTapSpan onTap={() => updateTodo(todo.id, { priority: "" })} onHold={() => setEditingPriority(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  background: "transparent", color: priority.color,
-                  border: "none", whiteSpace: "nowrap" }}>{priority.label}</HoldTapSpan>
+                  background: "transparent", color: priority.color, border: "none", whiteSpace: "nowrap" }}>{priority.label}</HoldTapSpan>
             ) : (
               <span onClick={() => setEditingPriority(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
@@ -323,12 +310,9 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
           {/* Tag */}
           <span style={{ position: "relative", display: "inline-flex" }}>
             {todo.tag && tags[todo.tag] ? (
-              <HoldTapSpan
-                onTap={() => updateTodo(todo.id, { tag: "" })}
-                onHold={() => setEditingTag(true)}
+              <HoldTapSpan onTap={() => updateTodo(todo.id, { tag: "" })} onHold={() => setEditingTag(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  background: "transparent", color: tags[todo.tag],
-                  border: "none", whiteSpace: "nowrap" }}>{todo.tag}</HoldTapSpan>
+                  background: "transparent", color: tags[todo.tag], border: "none", whiteSpace: "nowrap" }}>{todo.tag}</HoldTapSpan>
             ) : (
               <span onClick={() => setEditingTag(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
@@ -346,12 +330,9 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
           {/* Difficulty */}
           <span style={{ position: "relative", display: "inline-flex" }}>
             {difficulty ? (
-              <HoldTapSpan
-                onTap={() => updateTodo(todo.id, { difficulty: "" })}
-                onHold={() => setEditingDifficulty(true)}
+              <HoldTapSpan onTap={() => updateTodo(todo.id, { difficulty: "" })} onHold={() => setEditingDifficulty(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-                  background: "transparent", color: difficulty.color,
-                  border: "none", whiteSpace: "nowrap" }}>{difficulty.label}</HoldTapSpan>
+                  background: "transparent", color: difficulty.color, border: "none", whiteSpace: "nowrap" }}>{difficulty.label}</HoldTapSpan>
             ) : (
               <span onClick={() => setEditingDifficulty(true)}
                 style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
@@ -367,15 +348,29 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
           </span>
 
           {/* Focus */}
-          <span onClick={() => updateTodo(todo.id, { focus: !todo.focus })}
-            style={{ fontSize: 11, padding: "2px 0", cursor: "pointer", whiteSpace: "nowrap",
-              color: todo.focus ? "#c97ef7" : "#888" }}>
-            {todo.focus ? "Deep Focus" : "+ focus"}
+          <span style={{ position: "relative", display: "inline-flex" }}>
+            {focusLevel ? (
+              <HoldTapSpan onTap={() => updateTodo(todo.id, { focus: "" })} onHold={() => setEditingFocus(true)}
+                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
+                  background: "transparent", color: focusLevel.color, border: "none", whiteSpace: "nowrap" }}>{focusLevel.label}</HoldTapSpan>
+            ) : (
+              <span onClick={() => setEditingFocus(true)}
+                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, cursor: "pointer",
+                  color: "#888", border: "none", whiteSpace: "nowrap" }}>+ focus</span>
+            )}
+            {editingFocus && (
+              <PopupMenu
+                options={[{ value: "", label: "None", color: "#888" }, ...FOCUS_LEVELS.map(f => ({ value: f.id, label: f.label, color: f.color }))]}
+                onSelect={val => updateTodo(todo.id, { focus: val })}
+                onClose={() => setEditingFocus(false)}
+              />
+            )}
           </span>
+
         </div>
       )}
 
-      {/* Row 4: Subtasks */}
+      {/* Subtasks */}
       <div style={{ marginLeft: indent, marginTop: 5 }}>
         {subtasks.length > 0 && (
           <span onClick={() => setExpanded(v => !v)}
@@ -410,7 +405,6 @@ function TaskItem({ todo, tags, toggleTodo, deleteTodo, updateTodo }) {
                   onMouseOver={e => e.target.style.color = "#ff6b6b"} onMouseOut={e => e.target.style.color = "#666"}>×</button>
               </div>
             ))}
-
             {showSubInput ? (
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 <input autoFocus value={subInput} onChange={e => setSubInput(e.target.value)}
@@ -438,9 +432,9 @@ export default function TodoList() {
     try {
       const saved = localStorage.getItem("todos");
       return saved ? JSON.parse(saved) : [
-        { id: 1, text: "Buy groceries", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "", focus: false },
-        { id: 2, text: "Walk the dog", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "", focus: false },
-        { id: 3, text: "Read a book", done: true, tag: "", dueDate: "", subtasks: [], priority: "", focus: false },
+        { id: 1, text: "Buy groceries", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "", focus: "" },
+        { id: 2, text: "Walk the dog", done: false, tag: "Personal", dueDate: "", subtasks: [], priority: "", focus: "" },
+        { id: 3, text: "Read a book", done: true, tag: "", dueDate: "", subtasks: [], priority: "", focus: "" },
       ];
     } catch { return []; }
   });
@@ -455,7 +449,6 @@ export default function TodoList() {
   const [selectedPriority, setSelectedPriority] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [showNewTaskDatePicker, setShowNewTaskDatePicker] = useState(false);
   const [filterTag, setFilterTag] = useState("All");
   const [newTagName, setNewTagName] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
@@ -475,7 +468,7 @@ export default function TodoList() {
 
   function addTodo() {
     if (!input.trim()) return;
-    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false, tag: selectedTag, dueDate, subtasks: [], priority: selectedPriority, difficulty: selectedDifficulty, focus: false }]);
+    setTodos([...todos, { id: Date.now(), text: input.trim(), done: false, tag: selectedTag, dueDate, subtasks: [], priority: selectedPriority, difficulty: selectedDifficulty, focus: "" }]);
     setInput("");
     setDueDate("");
     setSelectedPriority("");
@@ -483,17 +476,9 @@ export default function TodoList() {
     setSelectedTag("");
   }
 
-  function toggleTodo(id) {
-    setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
-  }
-
-  function deleteTodo(id) {
-    setTodos(todos.filter(t => t.id !== id));
-  }
-
-  function updateTodo(id, changes) {
-    setTodos(todos.map(t => t.id === id ? { ...t, ...changes } : t));
-  }
+  function toggleTodo(id) { setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
+  function deleteTodo(id) { setTodos(todos.filter(t => t.id !== id)); }
+  function updateTodo(id, changes) { setTodos(todos.map(t => t.id === id ? { ...t, ...changes } : t)); }
 
   function addTag() {
     const name = newTagName.trim();
@@ -551,15 +536,10 @@ export default function TodoList() {
   const allActiveTasks = sortTasks(todos.filter(t => !t.done));
   const kanbanColumns = [
     ...Object.keys(tags).sort((a, b) => a.localeCompare(b)).map(tag => ({
-      name: tag,
-      color: tags[tag],
+      name: tag, color: tags[tag],
       tasks: allActiveTasks.filter(t => t.tag === tag),
     })),
-    {
-      name: "Untagged",
-      color: "#555",
-      tasks: allActiveTasks.filter(t => !t.tag || !tags[t.tag]),
-    }
+    { name: "Untagged", color: "#555", tasks: allActiveTasks.filter(t => !t.tag || !tags[t.tag]) }
   ];
 
   const sharedProps = { tags, toggleTodo, deleteTodo, updateTodo };
@@ -570,28 +550,20 @@ export default function TodoList() {
         * { box-sizing: border-box; }
         body { background: #1a1a2e; margin: 0; }
         input, button, select { font-family: inherit; }
-        .task-input { flex: 1; padding: 8px 2px; font-size: 15px; background: transparent; border: none; border-bottom: 1px solid #444; border-radius: 0; color: #f0f0f0; outline: none; }
+        .task-input { flex: 1; padding: 8px 2px; font-size: 15px; background: transparent; border: none; border-bottom: 1px solid #444; color: #f0f0f0; outline: none; }
         .task-input::placeholder { color: #888; }
         .task-input:focus { border-bottom-color: #6a8fff; }
-        .tag-select { padding: 8px 2px; font-size: 13px; background: transparent; border: none; border-bottom: 1px solid #444; border-radius: 0; color: #f0f0f0; outline: none; cursor: pointer; }
-        .tag-select:focus { border-bottom-color: #6a8fff; }
-        .date-input { padding: 8px 2px; font-size: 13px; background: transparent; border: none; border-bottom: 1px solid #444; border-radius: 0; color: #f0f0f0; outline: none; cursor: pointer; color-scheme: dark; }
-        .date-input:focus { border-bottom-color: #6a8fff; }
         .add-btn { padding: 11px 20px; background: #6a8fff; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
         .add-btn:hover { background: #5577ee; }
         .edit-input { flex: 1; padding: 6px 10px; font-size: 15px; background: #2a2a3e; border: 1px solid #6a8fff; border-radius: 6px; color: #f0f0f0; outline: none; }
         .save-btn { padding: 5px 12px; background: #6a8fff; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
-        .save-btn:hover { background: #5577ee; }
         .icon-btn { background: none; border: none; cursor: pointer; font-size: 17px; padding: 2px 6px; border-radius: 4px; line-height: 1; }
-        .edit-icon { color: #aaa; }
-        .edit-icon:hover { color: #6a8fff; background: #2a2a3e; }
         .delete-icon { color: #aaa; }
-        .delete-icon:hover { color: #ff6b6b; background: #2a2a3e; }
+        .delete-icon:hover { color: #ff6b6b; }
         .filter-btn { padding: 5px 12px; border-radius: 20px; border: none; font-size: 12px; cursor: pointer; transition: all 0.15s; }
         .new-tag-input { padding: 6px 10px; font-size: 13px; background: #2a2a3e; border: 1px solid #6a8fff; border-radius: 6px; color: #f0f0f0; outline: none; width: 130px; }
         .done-toggle { background: none; border: none; cursor: pointer; color: #555; font-size: 12px; display: flex; align-items: center; gap: 6px; padding: 0; }
         .done-toggle:hover { color: #888; }
-        .priority-btn { padding: 6px 11px; border-radius: 20px; border: none; font-size: 12px; cursor: pointer; transition: all 0.15s; background: transparent; color: #888; }
       `}</style>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
@@ -684,7 +656,6 @@ export default function TodoList() {
 
       {view === "list" ? (
         <>
-          {/* Active tasks */}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {activeTasks.length === 0 && (
               <li style={{ color: "#888", textAlign: "center", padding: 24 }}>No active tasks!</li>
@@ -696,7 +667,6 @@ export default function TodoList() {
           </p>
         </>
       ) : (
-        /* Kanban board */
         <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 24, alignItems: "flex-start" }}>
           {kanbanColumns.map(col => (
             <div key={col.name} style={{ minWidth: 280, flex: "0 0 280px", background: "#16162a", borderRadius: 10, padding: "14px" }}>
@@ -716,7 +686,6 @@ export default function TodoList() {
         </div>
       )}
 
-      {/* Delete tag confirmation popup */}
       {confirmDeleteTag && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -728,24 +697,17 @@ export default function TodoList() {
             padding: "24px 28px", minWidth: 260, textAlign: "center"
           }}>
             <p style={{ fontSize: 15, color: "#f0f0f0", marginBottom: 6 }}>Delete tag?</p>
-            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
-              "{confirmDeleteTag}" will be removed from all tasks.
-            </p>
+            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>"{confirmDeleteTag}" will be removed from all tasks.</p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={() => setConfirmDeleteTag(null)}
-                style={{ padding: "7px 20px", borderRadius: 8, border: "1px solid #444", background: "transparent", color: "#aaa", fontSize: 13, cursor: "pointer" }}>
-                Cancel
-              </button>
+                style={{ padding: "7px 20px", borderRadius: 8, border: "1px solid #444", background: "transparent", color: "#aaa", fontSize: 13, cursor: "pointer" }}>Cancel</button>
               <button onClick={() => { deleteTag(confirmDeleteTag); setConfirmDeleteTag(null); }}
-                style={{ padding: "7px 20px", borderRadius: 8, border: "none", background: "#ff6b6b", color: "#fff", fontSize: 13, cursor: "pointer" }}>
-                Delete
-              </button>
+                style={{ padding: "7px 20px", borderRadius: 8, border: "none", background: "#ff6b6b", color: "#fff", fontSize: 13, cursor: "pointer" }}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Done section */}
       {doneTasks.length > 0 && (
         <div style={{ borderTop: "1px solid #2e2e42", paddingTop: 16 }}>
           <button className="done-toggle" onClick={() => setShowDone(v => !v)}>
